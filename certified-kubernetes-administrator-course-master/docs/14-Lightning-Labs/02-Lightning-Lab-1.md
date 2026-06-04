@@ -6,168 +6,141 @@
 
 1.  <details>
     <summary>Upgrade the current version of kubernetes from 1.28.0 to 1.29.0 exactly using the kubeadm utility.</summary>
+    
+    To seamlessly transition from Kubernetes v1.34 to v1.35 and gain access to the packages specific to the desired Kubernetes minor version, follow these essential steps during the upgrade process. This ensures that your environment is appropriately configured and aligned with the features and improvements introduced in Kubernetes v1.35.
 
-    Make sure that the upgrade is carried out one node at a time starting with the controlplane node. To minimize downtime, the deployment `gold-nginx` should be rescheduled on an alternate node before upgrading each node.
+    1. On the controlplane node:
 
-
-    Upgrade `controlplane` node first and drain node `node01` before upgrading it. Pods for `gold-nginx` should run on the controlplane node subsequently.
-
-    **Upgrade `controlplane`**
-
-    1.  Update package repo
-
-        ```bash
-        apt update
-        ```
-
-    1.  Check madison to see what kubernetes packages are available
-
-        ```bash
-        apt-cache madison kubeadm
-        ```
-
-        Note that only 1.28 versions are present, meaning you have to grab the 1.29 repos
-
-    1.  Grab kubernetes 1.29 repos
-
-        For this, we need to edit the apt source file which you should find is `/etc/apt/sources.list.d/kubernetes.list`
+        Use any text editor you prefer to open the file that defines the Kubernetes apt repository.
 
         ```bash
         vi /etc/apt/sources.list.d/kubernetes.list
         ```
 
-        FInd any occurrence of `1.28` in this file and change it to `1.29`, then save and exit from vi.
-
-    1.  Now run madison again to find out the package version for 1.29
+    1. Update the version in the URL to the next available minor release, i.e v1.35. It should be smilar to this:
 
         ```bash
+        deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /
+        ```
+
+    1. After making changes, save the file and exit from your text editor. Proceed with the next instruction.
+
+        ```bash
+        kubectl drain controlplane --ignore-daemonsets
+        apt update
         apt-cache madison kubeadm
         ```
 
-        You should see the following in the list
+    1. Based on the version information displayed by apt-cache madison, it indicates that for Kubernetes version 1.35.0, the available package version is 1.35.0-1.1. Therefore, to install kubeadm for Kubernetes v1.35.0, use the following command:
 
-        > `kubeadm | 1.29.0-1.1 | https://pkgs.k8s.io/core:/stable:/v1.29/deb  Packages`
-
-        Now we know the package version is `1.29.0-1.1` we can proceed with the upgrade
-
-    1. Drain node
-
-        ```
-        kubectl drain controlplane --ignore-daemonsets
+        ```bash
+        apt-get install kubeadm=1.35.0-1.1
         ```
 
-    1. Upgrade kubeadm
+    1. Run the following command to upgrade the Kubernetes cluster.
 
-        ```
-        apt-mark unhold kubeadm
-        apt install -y kubeadm=1.29.0-1.1
-        ```
-
-    1. Plan and apply upgrade
-
-        ```
-        kubeadm upgrade plan
-        kubeadm upgrade apply v1.29.0
+        ```bash
+        kubeadm upgrade plan v1.35.0
+        kubeadm upgrade apply v1.35.0
         ```
 
-    1. Upgrade the kubelet
+    1. Now, upgrade the version and restart Kubelet. Also, mark the node (in this case, the "controlplane" node) as schedulable.
 
-        ```
-        apt-mark unhold kubelet
-        apt install -y kubelet=1.29.0-1.1
+        ```bash
+        apt-get install kubelet=1.35.0-1.1
         systemctl daemon-reload
         systemctl restart kubelet
         ```
 
     1. Reinstate controlplane node
 
-        ```
+        ```bash
         kubectl uncordon controlplane
         ```
 
-    1. Upgrade kubectl
+    1. Before draining node01, if the controlplane gets taint during an upgrade, we have to remove it.Identify the taint first.
 
-        ```
-        apt-mark unhold kubectl
-        apt install -y kubectl=1.29.0-1.1
-        ```
-
-    1. Re-hold packages
-
-        ```
-        apt-mark hold kubeadm kubelet kubectl
+        ```bash
+        kubectl describe node controlplane | grep -i taint
         ```
 
-    **Upgrade `node01`**
+    1. Remove the taint with help of "kubectl taint" command.
 
-    1. Drain the worker node
-
+        ```bash
+        kubectl taint node controlplane node-role.kubernetes.io/control-plane:NoSchedule-
         ```
+
+    1. Verify it, the taint has been removed successfully.  
+
+        ```bash
+        kubectl describe node controlplane | grep -i taint
+        ```
+
+    1. Now, drain the node01 as follows: -
+
+        ```bash
         kubectl drain node01 --ignore-daemonsets
         ```
 
-    1. Go to worker node
+    1. SSH to the node01 and perform the below steps as follows:
 
-        ```
-        ssh node01
-        ```
+    Use any text editor you prefer to open the file that defines the Kubernetes apt repository.
 
-    1. As before, you will need to update the package caches for v1.29
-
-        Follow the same steps as you did on `controlplane`
-
-    1. Upgrade kubeadm
-
-        ```
-        apt-mark unhold kubeadm
-        apt install -y kubeadm=1.29.0-1.1
+        ```bash
+        vim /etc/apt/sources.list.d/kubernetes.list
         ```
 
-    1. Upgrade node
+    1. Update the version in the URL to the next available minor release, i.e v1.35.
 
+        ```bash
+        deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /
         ```
+
+    1. After making changes, save the file and exit from your text editor. Proceed with the next instruction.
+
+        ```bash
+        apt update
+        apt-cache madison kubeadm
+        ```
+
+    1. Based on the version information displayed by apt-cache madison, it indicates that for Kubernetes version 1.35.0, the available package version is 1.35.0-1.1. Therefore, to install kubeadm for Kubernetes v1.35.0, use the following command:
+
+        ```bash
+        apt-get install kubeadm=1.35.0-1.1
+        ```
+
+    1. Upgrade the node 
+
+        ```bash
         kubeadm upgrade node
         ```
 
-    1. Upgrade the kubelet
+    1. Now, upgrade the version and restart Kubelet.
 
-        ```
-        apt-mark unhold kubelet
-        apt install kubelet=1.29.0-1.1
+        ```bash
+        apt-get install kubelet=1.35.0-1.1
         systemctl daemon-reload
         systemctl restart kubelet
         ```
 
-    1. Re-hold packages
+    1. To exit from the specific node, type exit or logout on the terminal.
 
-        ```
-        apt-mark hold kubeadm kubelet
-        ```
-
-    1. Return to controlplane
-
-        ```
+        ```bash
         exit
         ```
 
-    1. Reinstate worker node
+    1. Back on the controlplane node
 
-        ```
+        ```bash
         kubectl uncordon node01
-        ```
-
-    1. Verify `gold-nginx` is scheduled on controlplane node
-
-        ```
-        kubectl get pods -o wide | grep gold-nginx
-        ```
+        kubectl get pods -o wide | grep gold
+        ``` # make sure this is scheduled on a node
 
     **TIP**
 
     To do cluster upgrades faster and save at least 3 minutes, you can work on both nodes at the same time.
 
     While `kubeadm upgrade apply` is running on `controlplane`, which takes some minutes, open a second terminal and perform steps `ii`, `iii` and `iv` of "Upgrade `node01`", so that it is ready for `kubeadm upgrade node` as soon as you have drained it.
-
 
     </details>
 
@@ -176,51 +149,72 @@
 
     This is a job for `custom-columns` output of kubectl
 
-    ```
+    ```bash
     kubectl -n admin2406 get deployment -o custom-columns=DEPLOYMENT:.metadata.name,CONTAINER_IMAGE:.spec.template.spec.containers[].image,READY_REPLICAS:.status.readyReplicas,NAMESPACE:.metadata.namespace --sort-by=.metadata.name > /opt/admin2406_data
     ```
+
     </details>
 
 3.  <details>
-    <summary>A kubeconfig file called admin.kubeconfig has been created in /root/CKA. There is something wrong with the configuration. Troubleshoot and fix it.</summary>
+    <summary> A kubeconfig file called admin. kubeconfig has been created in /root/CKA. There is something wrong with the configuration. Troubleshoot and fix it.</summary>
 
-    First, let's test this kubeconfig
+    1. First, let's test this kubeconfig
 
-    ```
-    kubectl get pods --kubeconfig /root/CKA/admin.kubeconfig
-    ```
+        ```bash
+        kubectl get pods --kubeconfig /root/CKA/admin.kubeconfig
+        ```
 
     Notice the error message.
 
-    Now look at the default kubeconfig for the correct setting.
+    1. Now look at the default kubeconfig for the correct setting.
 
-    ```
-    cat ~/.kube/config
-    ```
+        ```bash
+        cat ~/.kube/config
+        ```
 
-    Make the correction
+    1. Make the correction
 
-    ```
-    vi /root/CKA/admin.kubeconfig
-    ```
+        ```bash
+        vi /root/CKA/admin.kubeconfig
+        ```
 
-    Test
+    Make sure the port for the kube-apiserver is correct. So for this change port from 4380 to 6443.
 
-    ```
-    kubectl get pods --kubeconfig /root/CKA/admin.kubeconfig
-    ```
+    1. Test
+
+        ```bash
+        kubectl cluster-info --kubeconfig /root/CKA/admin.kubeconfig
+        ```
+
   </details>
 
 4.  <details>
-    <summary>Create a new deployment called nginx-deploy, with image nginx:1.16 and 1 replica. Next upgrade the deployment to version 1.17 using rolling update.</summary>
 
-    ```
-    kubectl create deployment nginx-deploy --image=nginx:1.16
-    kubectl set image deployment/nginx-deploy nginx=nginx:1.17 --record
-    ```
+    <summary>
+    Create a new deployment called nginx-deploy, with image nginx:1.16 and 1 replica.</summary>
+
+    1. Create a new deployment called nginx-deploy
+
+        ```bash
+        kubectl create deployment nginx-deploy --image=nginx:1.16
+        ```
+
+    1. Next upgrade the deployment to version 1.17 using rolling update.
+
+        ```bash
+        kubectl set image deployment/nginx-deploy nginx=nginx:1.17 --record
+        ```
 
     You may ignore the deprecation warning.
 
+
+    1. Manually annotate the deployment to log the change, replacing the functionality of the deprecated --record option.
+
+        ```bash
+        kubectl annotate deployment nginx-deploy kubernetes.io/change-cause="Updated nginx image to 1.17"
+        ```
+
+    This annotation acts as a record of the image update.
     </details>
 
 5.  <details>
@@ -230,41 +224,47 @@
 
     Important: Do not alter the persistent volume.
 
-    Inspect the deployment to check the environment variable is set. Here I'm using `yq` which is like `jq` but for YAML to not have to view the _entire_ deployment YAML, just the section beneath `containers` in the deployment spec.
+    1. Inspect the deployment to check the environment variable is set. Here I'm using `yq` which is like `jq` but for YAML to not have to view the _entire_ deployment YAML, just the section beneath `containers` in the deployment spec.
 
-    ```
-    kubectl get deployment -n alpha alpha-mysql  -o yaml | yq e .spec.template.spec.containers -
-    ```
+        ```bash
+        kubectl get deployment -n alpha alpha-mysql  -o yaml | yq e .spec.template.spec.containers -
+        ```
 
-    Find out why the deployment does not have minimum availability. We'll have to find out the name of the deployment's pod first, then describe the pod to see the error.
+    1. Find out why the deployment does not have minimum availability. We'll have to find out the name of the deployment's pod first, then describe the pod to see the error.
 
-    ```
-    kubectl get pods -n alpha
-    kubectl describe pod -n alpha alpha-mysql-xxxxxxxx-xxxxx
-    ```
+        ```bash
+        kubectl get pods -n alpha
+        ```
 
-    We find that the requested PVC isn't present, so create it. First, examine the Persistent Volume to find the values for access modes, capacity (storage), and storage class name
+    1. Step 3
 
-    ```
-    kubectl get pv alpha-pv
-    ```
+        ```bash
+        kubectl describe pod -n alpha alpha-mysql-xxxxxxxx-xxxxx
+        ```
 
-    Now use `vi` to create a PVC manifest
+    1. We find that the requested PVC isn't present, so create it. First, examine the Persistent Volume to find the values for access modes, capacity (storage), and storage class name
 
-    ```yaml
-    apiVersion: v1
-    kind: PersistentVolumeClaim
-    metadata:
-      name: mysql-alpha-pvc
-      namespace: alpha
-    spec:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 1Gi
-      storageClassName: slow
-    ```
+        ```bash
+        kubectl get pv alpha-pv
+        ```
+
+    1. Now use `vi` to create a PVC manifest
+
+        ```yaml
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: mysql-alpha-pvc
+          namespace: alpha
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+        storageClassName: slow
+        ```
+
   </details>
 
 6.  <details>
@@ -274,7 +274,7 @@
 
     Know that the certificates we need for authentication of `etcdctl` are located in `/etc/kubernetes/pki/etcd`
 
-    ```
+    ```bash
     ETCDCTL_API='3' etcdctl snapshot save \
       --cacert=/etc/kubernetes/pki/etcd/ca.crt \
       --cert=/etc/kubernetes/pki/etcd/server.crt \
@@ -294,8 +294,8 @@
 
     1. Use imperative command to get a starter manifest
 
-        ```
-        kubectl run secret-1401 -n admin1401 --image busybox --dry-run=client -o yaml --command -- sleep 4800 > admin.yaml
+        ```bash
+        kubectl run secret-1401 -n admin1401 --image=busybox --dry-run=client -oyaml --command -- sleep 4800 > admin.yaml
         ```
 
     1. Edit this manifest to add in the details for mounting the secret
@@ -334,10 +334,8 @@
 
     1. And create the pod
 
-        ```
+        ```bash
         kubectl create -f admin.yaml
         ```
 
   </details>
-
-
