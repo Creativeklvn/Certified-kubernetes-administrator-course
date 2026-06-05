@@ -1,4 +1,7 @@
-# Mock Exam 3 Solution
+# Mock Exam 3
+  
+  Take me to [Mock Exam 3](https://kodekloud.com/topic/mock-exam-3-2/)
+
 
 
 1. Run the below command for solution: 
