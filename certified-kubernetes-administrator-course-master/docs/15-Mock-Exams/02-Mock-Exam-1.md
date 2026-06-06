@@ -293,7 +293,7 @@ Note: The kkapp-deploy deployment is created for backend; you can check in the t
           kind: Deployment
           name: kkapp-deploy
         minReplicas: 2
-      maxReplicas: 10
+        maxReplicas: 10
         metrics:
         - type: Resource
           resource:
