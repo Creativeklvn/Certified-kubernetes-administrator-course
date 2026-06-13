@@ -72,6 +72,12 @@ As an administrator, you need to prepare `node01` to install kubernetes. One of 
     dpkg -i /root/cri-docker_0.3.16.3-0.debian.deb
     ```
 
+    or
+
+    ```bash
+    sudo apt install /root/cri-docker_0.3.16.3-0.debian.deb
+    ```
+
     After installing the package, start the `cri-docker` service and enable it to start on boot:
 
     ```bash
@@ -101,8 +107,6 @@ As an administrator, you need to prepare `node01` to install kubernetes. One of 
 3. On controlplane node, identify all CRDs related to VerticalPodAutoscaler and save their names into the file /root/vpa-crds.txt.
 
     <details>
-    
-    Run below command to create a namespace:
       
     Use `kubectl get crd` to find all CRDs and filter by `VerticalPodAutoscaler`.
 
@@ -378,56 +382,56 @@ The VPA should automatically adjust the CPU and memory requests of the pods to o
 
 12. One co-worker deployed a podinfo helm chart kk-mock1 in the kk-ns namespace on the cluster. A new update is pushed to the helm chart, and the team wants you to update the helm repository to fetch the new changes. After updating the helm chart, upgrade the helm chart version to 6.11.2.
 
-    <details>
+      <details>
 
-    Apply below manifests:
+      Apply below manifests:
 
-    In this task, we will use the kubectl and helm commands. Here are the steps:
+      In this task, we will use the kubectl and helm commands. Here are the steps:
 
-    use the `helm ls` command to list all the releases installed using Helm in the Kubernetes cluster.
+      use the `helm ls` command to list all the releases installed using Helm in the Kubernetes cluster.
 
-    ```bash
-    helm ls -A
-    ```
+      ```bash
+      helm ls -A
+      ```
 
-    Here `-A` or `--all-namespaces` option lists all the releases of all the namespaces.
+      Here `-A` or `--all-namespaces` option lists all the releases of all the namespaces.
 
-    Identify the namespace where the resources get deployed.
+      Identify the namespace where the resources get deployed.
 
-    Use the `helm` repo ls command to list the helm repositories.
+      Use the `helm` repo ls command to list the helm repositories.
 
-    ```bash
-    helm repo ls
-    ```
+      ```bash
+      helm repo ls
+      ```
 
-    Now, update the helm repository with the following command: -
+      Now, update the helm repository with the following command: -
 
-    ```bash
-    helm repo update kk-mock1 -n kk-ns
-    ```
+      ```bash
+      helm repo update kk-mock1 -n kk-ns
+      ```
 
-    The above command updates the local cache of available charts from the configured chart repositories.
+      The above command updates the local cache of available charts from the configured chart repositories.
 
-    The helm search command searches for all the available charts in a specific Helm chart repository. In our case, it's the podinfo helm chart.
+      The helm search command searches for all the available charts in a specific Helm chart repository. In our case, it's the podinfo helm chart.
 
-    ```bash
-    helm search repo kk-mock1/podinfo -n kk-ns -l | head -n30
-    ```
+      ```bash
+      helm search repo kk-mock1/podinfo -n kk-ns -l | head -n30
+      ```
 
-    The -l or --versions option is used to display information about all available chart versions.
+      The -l or --versions option is used to display information about all available chart versions.
 
-    Upgrade the helm chart to 6.11.2:
+      Upgrade the helm chart to 6.11.2:
 
-    ```bash
-    helm upgrade kk-mock1 kk-mock1/podinfo -n kk-ns --version=6.11.2
-    ```
+      ```bash
+      helm upgrade kk-mock1 kk-mock1/podinfo -n kk-ns --version=6.11.2
+      ```
 
-    After upgrading the chart version, you can verify it with the following command: -
+      After upgrading the chart version, you can verify it with the following command: -
 
-    ```bash
-    helm ls -n kk-ns
-    ```
+      ```bash
+      helm ls -n kk-ns
+      ```
 
-    Look under the CHART column for the chart version.
+      Look under the CHART column for the chart version.
 
-     </details>
+      </details>
