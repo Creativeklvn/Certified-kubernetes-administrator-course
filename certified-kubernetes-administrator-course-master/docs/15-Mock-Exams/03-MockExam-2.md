@@ -251,7 +251,7 @@
       - client auth
     ```
 
-    To approve this certificate, run: 
+    To approve this certificate, run:
 
     ```bash
     kubectl certificate approve john-developer
@@ -262,7 +262,50 @@
     ```bash
     kubectl create role developer --resource=pods --verb=create,list,get,update,delete --namespace=development
 
+    or
+
+    ```yaml
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: developer
+      namespace: development
+    rules:
+    - apiGroups: [""]
+      resources: ["pods"]
+      verbs: ["create","list","get","update","delete"]
+    ```
+
+    ```bash
+    kubectl apply -f rol.yaml
+    ```
+
+    Next, create a role developer and rolebinding developer-role-binding, run the command:
+    
+    ```bash
     kubectl create rolebinding developer-role-binding --role=developer --user=john --namespace=development
+    ```
+
+    or
+
+    ```yaml
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: john-developer-binding
+      namespace: development
+    subjects:
+    - kind: User
+      name: john
+      apiGroup: rbac.authorization.k8s.io
+    roleRef:
+      kind: Role
+      name: developer
+      apiGroup: rbac.authorization.k8s.io
+    ```
+
+    ```bash
+    kubectl apply -f rolebinding.yaml
     ```
 
     To verify the permission from kubectl utility tool:
