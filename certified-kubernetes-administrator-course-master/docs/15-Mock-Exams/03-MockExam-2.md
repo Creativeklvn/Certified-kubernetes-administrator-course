@@ -261,6 +261,7 @@
 
     ```bash
     kubectl create role developer --resource=pods --verb=create,list,get,update,delete --namespace=development
+    ```
 
     or
 
@@ -273,7 +274,7 @@
     rules:
     - apiGroups: [""]
       resources: ["pods"]
-      verbs: ["create","list","get","update","delete"]
+      verbs: ["create", "list", "get", "update", "delete"]
     ```
 
     ```bash
