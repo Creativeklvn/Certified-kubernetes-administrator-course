@@ -86,10 +86,7 @@
             initContainers:
               - name: log-agent
                 image: busybox
-                command:
-                  - sh
-                  - -c
-                  - "touch /var/log/app/app.log; tail -f /var/log/app/app.log"
+                command: ['sh', '-c', 'touch /var/log/app/app.log; tail -f /var/log/app/app.log']
                 volumeMounts:
                   - name: log-volume
                     mountPath: /var/log/app
@@ -97,10 +94,7 @@
             containers:
               - name: app-container
                 image: busybox
-                command:
-                  - sh
-                  - -c
-                  - "while true; do echo 'Log entry' >> /var/log/app/app.log; sleep 5; done"
+                command: ['sh', '-c', 'while true; do echo "Log entry" >> /var/log/app/app.log; sleep 5; done']
                 volumeMounts:
                   - name: log-volume
                     mountPath: /var/log/app
@@ -157,8 +151,6 @@
       metadata:
         name: webapp-ingress
         namespace: ingress-ns
-        annotations:
-          nginx.ingress.kubernetes.io/rewrite-target: /
       spec:
         ingressClassName: nginx
         rules:
