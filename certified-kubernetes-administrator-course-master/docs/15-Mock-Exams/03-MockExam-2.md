@@ -1,8 +1,8 @@
 # Mock Exam 2
 
-  Test My Knowledge, Take me to [Mock Exam 1](https://kodekloud.com/topic/mock-exam-1-3/)
+  Test My Knowledge, Take me to [Mock Exam 2](https://kodekloud.com/topic/mock-exam-2-3/)
 
-  #### Solution to the Mock Exam 1
+  #### Solution to the Mock Exam 2
 
 1. Create a StorageClass named `local-sc` with the following specifications and set it as the default storage class:
 
@@ -307,7 +307,7 @@
     kubectl auth can-i update pods --as=john --namespace=development
     ```
 
-</details>
+    </details>
 
 6. Create an nginx pod named `nginx-resolver` using the `nginx` image and expose it internally using a `ClusterIP` service called `nginx-resolver-service`.
 
@@ -435,91 +435,17 @@ Configure the HPA with a minimum of 3 replicas and a maximum of 15.
 
     </details>
 
-9. Create a Horizontal Pod Autoscaler (HPA) with name webapp-hpa for the deployment named kkapp-deploy in the default namespace with the webapp-hpa.yaml file located under the root folder.
-Ensure that the HPA scales the deployment based on CPU utilization, maintaining an average CPU usage of 50% across all pods.
-Configure the HPA to cautiously scale down pods by setting a stabilization window of 300 seconds to prevent rapid fluctuations in pod count. 
-Note: The kkapp-deploy deployment is created for backend; you can check in the terminal.
+9. Modify the existing `web-gateway` on `cka5673` namespace to handle HTTPS traffic on port `443` for `kodekloud.com`, using a TLS certificate stored in a secret named `kodekloud-tls`.
+
+    - Is the web gateway configured to listen on the hostname kodekloud.com?
+
+    - Is the HTTPS listener configured with the correct TLS certificate?
 
       <details>
-
-      Under /root/ folder you will find a yaml file webapp-hpa.yaml. Update the yaml file as per task given.
-
-      ```yaml
-      apiVersion: autoscaling/v2
-      kind: HorizontalPodAutoscaler
-      metadata:
-        name: webapp-hpa
-        namespace: default
-      spec:
-        scaleTargetRef:
-          apiVersion: apps/v1
-          kind: Deployment
-          name: kkapp-deploy
-        minReplicas: 2
-        maxReplicas: 10
-        metrics:
-        - type: Resource
-          resource:
-            name: cpu
-            target:
-              type: Utilization
-              averageUtilization: 50
-        behavior:
-          scaleDown:
-            stabilizationWindowSeconds: 300
-      ```
-
-      Use below command
+      Check the configuration of the web-gateway.
 
       ```bash
-      kubectl create -f webapp-hpa.yaml
-      ```
-
-      </details>
-
-10. Deploy a Vertical Pod Autoscaler (VPA) with name analytics-vpa for the deployment named analytics-deployment in the default namespace.
-The VPA should automatically adjust the CPU and memory requests of the pods to optimize resource utilization. Ensure that the VPA operates in Recreate mode, allowing it to evict and recreate pods with updated resource requests as needed.:
-
-      <details>
-      Use the below YAML file to create the VPA for deployment analytics-deployment
-
-      ```bash
-      kubectl create -n default -f - <<EOF
-      ```
-
-      ```yaml
-      apiVersion: autoscaling.k8s.io/v1
-      kind: VerticalPodAutoscaler
-      metadata:
-        name: analytics-vpa
-        namespace: default
-      spec:
-        targetRef:
-          apiVersion: apps/v1
-          kind: Deployment
-          name: analytics-deployment
-        updatePolicy:
-          updateMode: "Recreate"
-      EOF
-      ```
-
-      </details>
-
-11. Create a Kubernetes Gateway resource with the following specifications:
-
-    <details>
-    Name: web-gateway
-    Namespace: nginx-gateway
-    Gateway Class Name: nginx
-    Listeners:
-    Protocol: HTTP
-    Port: 80
-    Name: http:
-
-      Copy the below YAML file to the terminal and create a gateway resource.
-
-      ```bash
-      kubectl create -n nginx-gateway -f - <<EOF
+      kubectl get gateway web-gateway -n cka5673 -o yaml
       ```
 
       ```yaml
@@ -527,70 +453,114 @@ The VPA should automatically adjust the CPU and memory requests of the pods to o
       kind: Gateway
       metadata:
         name: web-gateway
-        namespace: nginx-gateway
+        namespace: cka5673
+        resourceVersion: "21919"
+        uid: a1d0e35d-5126-4000-88ec-f440941eed75
       spec:
-        gatewayClassName: nginx
+        gatewayClassName: kodekloud
         listeners:
-          - name: http
-            protocol: HTTP
-            port: 80
-      EOF
+        - allowedRoutes:
+            namespaces:
+              from: Same
+          name: https
+          port: 80
+          protocol: HTTP
+      ```
+
+      The current configuration of the `web-gateway` is incorrect as it is listening on port 80 using the HTTP protocol. To update the `web-gateway` to listen on port 443 with the TLS certificate, use the following manifest:
+
+      ```yaml # web-gateway.yaml
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: Gateway
+      metadata:
+        name: web-gateway
+        namespace: cka5673
+      spec:
+        gatewayClassName: kodekloud
+        listeners:
+          - name: https
+            protocol: HTTPS
+            port: 443
+            hostname: kodekloud.com
+            tls:
+              certificateRefs:
+                - name: kodekloud-tls
+      ```
+
+      Apply the configuration as follows:
+
+      ```bash
+      kubectl apply -f web-gateway.yaml     
       ```
 
       </details>
 
-12. One co-worker deployed a podinfo helm chart kk-mock1 in the kk-ns namespace on the cluster. A new update is pushed to the helm chart, and the team wants you to update the helm repository to fetch the new changes. After updating the helm chart, upgrade the helm chart version to 6.11.2.
+10. On the cluster, the team has installed multiple helm charts on  a different namespace. By mistake, those deployed resources include one of the vulnerable images called kodekloud/webapp-color:v1. Find out the release name and uninstall it.
+
+
+    - Is helm release uninstalled?
+
+      <details>
+      In this task, we will use the helm commands and `jq` tool. Here are the steps: -
+
+      Run the `helm ls` command with `-A` option to list the releases deployed on all the namespaces using helm.
+
+      ```bash
+      helm ls -A
+      ```
+
+      We will use the `jq` tool to extract the image name from the deployments.
+
+      ```bash
+      kubectl get deploy -n <NAMESPACE> <DEPLOYMENT-NAME> -o json | jq -r '.spec.template.spec.containers[].image'
+      ```
+
+      Replace `<NAMESPACE>` with the namespace and `<DEPLOYMENT-NAME>` with the deployment name, which we get from the previous commands.
+
+      After finding the `kodekloud/webapp-color:v1` image, use the `helm uninstall` to remove the deployed chart that are using this vulnerable image.
+
+      ```bash
+      helm uninstall <RELEASE-NAME> -n <NAME
+      ```
+
+      </details>
+
+11. You are requested to create a NetworkPolicy to allow traffic from frontend apps located in the frontend namespace, to backend apps located in the backend namespace, but not from the databases in the databases namespace. There are three policies available in the /root folder. Apply the most restrictive policy from the provided YAML files to achieve the desired result. Do not delete any existing policies.
+
+
+    - Correct NetworkPolicy applied
+
+    - Incorrect NetworkPolicy is not applied
+
+    - Second incorrect NetworkPolicy is not applied
 
     <details>
+    Read through all provided NetworkPolicy YAML files carefully. Only one of them restricts traffic from the `databases` namespace while allowing it from `frontend`.
 
-    Apply below manifests:
-
-    In this task, we will use the kubectl and helm commands. Here are the steps:
-
-    use the `helm ls` command to list all the releases installed using Helm in the Kubernetes cluster.
+    On controlplane, Review the contents of the three YAML files:
 
     ```bash
-    helm ls -A
+    cat /root/net-pol-1.yaml
+    cat /root/net-pol-2.yaml
+    cat /root/net-pol-3.yaml
     ```
 
-    Here `-A` or `--all-namespaces` option lists all the releases of all the namespaces.
+    Understand the differences:
+    - `net-pol-1.yaml`: Too broad; allows traffic from any namespace with a certain label.
+    - `net-pol-2.yaml`: Incorrect; explicitly allows both `frontend` and `databases`.
+    - `net-pol-3.yaml`: Correct; only allows traffic from the `frontend` namespace.
 
-    Identify the namespace where the resources get deployed.
-
-    Use the `helm` repo ls command to list the helm repositories.
+    Apply the correct policy (`net-pol-3.yaml`):
 
     ```bash
-    helm repo ls
+    kubectl apply -f /root/net-pol-3.yaml
     ```
 
-    Now, update the helm repository with the following command: -
+    Verify it’s the only one applied:
 
     ```bash
-    helm repo update kk-mock1 -n kk-ns
+    kubectl get netpol -n backend
     ```
 
-    The above command updates the local cache of available charts from the configured chart repositories.
-
-    The helm search command searches for all the available charts in a specific Helm chart repository. In our case, it's the podinfo helm chart.
-
-    ```bash
-    helm search repo kk-mock1/podinfo -n kk-ns -l | head -n30
-    ```
-
-    The -l or --versions option is used to display information about all available chart versions.
-
-    Upgrade the helm chart to 6.11.2:
-
-    ```bash
-    helm upgrade kk-mock1 kk-mock1/podinfo -n kk-ns --version=6.11.2
-    ```
-
-    After upgrading the chart version, you can verify it with the following command: -
-
-    ```bash
-    helm ls -n kk-ns
-    ```
-
-    Look under the CHART column for the chart version.
-
-     </details>
+    You should only see `net-policy-3` listed
+      </details>

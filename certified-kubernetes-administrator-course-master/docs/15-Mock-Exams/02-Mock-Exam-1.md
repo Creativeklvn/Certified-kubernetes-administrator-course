@@ -177,7 +177,7 @@ As an administrator, you need to prepare `node01` to install kubernetes. One of 
       ```bash
       kubectl create deployment hr-web-app --image=kodekloud/webapp-color --replicas=2
       ```
-  </details>
+    </details>
 
 6. A new application orange is deployed. There is something wrong with it. Identify and fix the issue.
   
