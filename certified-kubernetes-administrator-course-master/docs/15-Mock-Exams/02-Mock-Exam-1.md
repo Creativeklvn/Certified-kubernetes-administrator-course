@@ -110,7 +110,7 @@ As an administrator, you need to prepare `node01` to install kubernetes. One of 
       
     Use `kubectl get crd` to find all CRDs and filter by `VerticalPodAutoscaler`.
 
-    Remember to exit back to `controlplane` node before attempting this question.
+    Remember to `exit` back to `controlplane` node before attempting this question.
 
     To find the CRDs Related to VerticalPodAutoscaler, use the following `kubectl` command to list all CRDs and filter them for VerticalPodAutoscaler resources:
 
@@ -355,7 +355,7 @@ The VPA should automatically adjust the CPU and memory requests of the pods to o
     Listeners:
     Protocol: HTTP
     Port: 80
-    Name: http:
+    Name: http
 
       Copy the below YAML file to the terminal and create a gateway resource.
 

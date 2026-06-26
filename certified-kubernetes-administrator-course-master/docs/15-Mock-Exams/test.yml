@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logging-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logger
+  template:
+    metadata:
+      labels:
+        app: logger
+    spec:
+      # initContainers:
+      #   - name: log-agent
+      #     image: busybox
+      containers:
+        - name: app-container
+          image: busybox
+          command: ['sh', '-c', 'while true; sleep 5; done']
